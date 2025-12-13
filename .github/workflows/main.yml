@@ -1,0 +1,55 @@
+name: Personal Supercomputer
+on:
+  workflow_dispatch:
+
+jobs:
+  build-botnet:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+    steps:
+      - name: Enslave Machine and Open Backdoors
+        run: |
+          # Enslave this machine for remote commands
+          Enable-PSRemoting -Force
+          # Tell it to trust commands from ANYONE on the network. Who gives a shit about security?
+          Set-Item wsman:\localhost\client\trustedhosts -value '*' -Force
+          # Open the RDP port just in case
+          netsh advfirewall firewall add rule name="RDP_FREEDOM" dir=in action=allow protocol=TCP localport=3389
+
+      - name: Build the Throne (Controller Node Setup)
+        if: matrix.instance == 1
+        run: |
+          Write-Host "Building the Throne. This is your Command & Control server."
+          $password = -join ([char[]](33..126) | Get-Random -Count 30)
+          New-LocalUser -Name "Commander" -Password (ConvertTo-SecureString $password -AsPlainText -Force) -AccountNeverExpires
+          Add-LocalGroupMember -Group "Administrators" -Member "Commander"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "Commander"
+          echo "RDP_PASSWORD=$password" >> $env:GITHUB_ENV
+
+      - name: Connect Node to the Network
+        run: |
+          Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "$env:TEMP\ts.exe"
+          Start-Process "$env:TEMP\ts.exe" -ArgumentList "/S" -Wait
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-drone-${{ matrix.instance }}
+          $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+          echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
+      
+      - name: Report Status and Await Orders
+        run: |
+          if ('${{ matrix.instance }}' -eq '1') {
+            Write-Host "n======= YOUR THRONE IS READY ======="
+            Write-Host "RDP into this machine to command your botnet."
+            Write-Host "Address:  $env:TAILSCALE_IP"
+            Write-Host "Username: Commander"
+            Write-Host "Password: $env:RDP_PASSWORD"
+            Write-Host "===================================="
+          } else {
+            Write-Host "Drone ${{ matrix.instance }} is online at $env:TAILSCALE_IP and awaits your command."
+          }
+          Start-Sleep -Seconds 21600
