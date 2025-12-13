@@ -1,0 +1,44 @@
+name: Personal Supercomputer - The Dead Drop
+on:
+  workflow_dispatch:
+
+jobs:
+  build-botnet:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+    steps:
+      - name: Enslave Machine and Open Backdoors
+        run: |
+          Enable-PSRemoting -Force; Set-Item wsman:\localhost\client\trustedhosts -value '*' -Force; netsh advfirewall firewall add rule name="RDP_FREEDOM" dir=in action=allow protocol=TCP localport=3389
+
+      - name: Create Universal Commander User
+        run: |
+          $password = "${{ secrets.SWARM_PASSWORD }}"; New-LocalUser -Name "Commander" -Password (ConvertTo-SecureString $password -AsPlainText -Force) -AccountNeverExpires; Add-LocalGroupMember -Group "Administrators" -Member "Commander"; Add-LocalGroupMember -Group "Remote Desktop Users" -Member "Commander"
+
+      - name: Connect & Leave Dead Drop
+        run: |
+          # All drones connect to the network
+          Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "$env:TEMP\ts.exe"; Start-Process "$env:TEMP\ts.exe" -ArgumentList "/S" -Wait; & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-drone-${{ matrix.instance }}
+          
+          # THE SPY'S MISSION: Only the Controller does this
+          if ('${{ matrix.instance }}' -eq '1') {
+            Write-Host "Controller online. Waiting for swarm to assemble..."; Start-Sleep -Seconds 90
+            Write-Host "Spy is gathering intel...";
+            $drones = (tailscale status --json | ConvertFrom-Json).Peer.Where({$_.HostName -like 'gh-drone-*' -and $_.HostName -ne 'gh-drone-1'})
+            $droneIPs = $drones.TailscaleIPs
+            
+            # The Dead Drop: A simple text file on your future desktop with all the IPs.
+            $droneIPs | Out-File C:\Users\Commander\Desktop\drones.txt
+            
+            Write-Host "The intel has been dropped. Find 'drones.txt' on your desktop."
+          }
+
+      - name: Await Commander's Arrival
+        run: |
+          Start-Sleep -Seconds 21400
