@@ -1,0 +1,25 @@
+name: n8n-personal
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION:?Set N8N_VERSION in .env}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      DB_TYPE: sqlite
+      N8N_HOST: ${N8N_HOST:?Set N8N_HOST in .env}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      N8N_EDITOR_BASE_URL: https://${N8N_HOST:?Set N8N_HOST in .env}/
+      WEBHOOK_URL: https://${N8N_HOST:?Set N8N_HOST in .env}/
+      N8N_PROXY_HOPS: 1
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Set N8N_ENCRYPTION_KEY in .env}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      GENERIC_TIMEZONE: ${N8N_TIMEZONE:-Etc/UTC}
+      TZ: ${N8N_TIMEZONE:-Etc/UTC}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

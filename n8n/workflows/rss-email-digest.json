@@ -1,0 +1,63 @@
+{
+  "id": "starterRssEmailDigest",
+  "name": "Starter: RSS to email digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "days", "daysInterval": 1, "triggerAtHour": 8 }
+          ]
+        }
+      },
+      "id": "47c944b3-f405-4d87-b20b-14d8751ddaa3",
+      "name": "Every morning",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://www.nasa.gov/feed/"
+      },
+      "id": "9426385a-b854-4d22-a098-e85ea28e149f",
+      "name": "Read RSS feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const entries = $input.all().slice(0, 10).map((item, index) => { const post = item.json; return `${index + 1}. ${post.title || 'Untitled'}\\n${post.link || ''}`; }); return [{ json: { text: entries.length ? entries.join('\\n\\n') : 'No items found in the feed.' } }];"
+      },
+      "id": "14c3ac3d-f52e-4fa3-b5eb-38910538bd8b",
+      "name": "Build digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "you@example.com",
+        "toEmail": "you@example.com",
+        "subject": "Daily RSS digest",
+        "text": "={{ $json.text }}",
+        "options": {}
+      },
+      "id": "26071d9a-283a-4a0a-b34b-cf3efc267f54",
+      "name": "Email digest",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Every morning": { "main": [[{ "node": "Read RSS feed", "type": "main", "index": 0 }]] },
+    "Read RSS feed": { "main": [[{ "node": "Build digest", "type": "main", "index": 0 }]] },
+    "Build digest": { "main": [[{ "node": "Email digest", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": []
+}
